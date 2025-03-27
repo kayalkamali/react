@@ -1,0 +1,38 @@
+name: Push-to-GCP
+
+# Trigger deployment only on push to main branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to GCP on main branch push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the files
+        uses: actions/checkout@v3  # Fetch latest code from GitHub
+
+      - name: Deploy to GCP VM
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.GCP_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.GCP_HOST }}
+          REMOTE_USER: ${{ secrets.GCP_USER }}
+          TARGET: /var/www/html  # Target directory for deployment
+
+      - name: Executing remote SSH commands using SSH key
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            sudo apt-get -y update
+            sudo apt-get install -y apache2
+            sudo systemctl start apache2
+            sudo systemctl enable apache2
+            cd /home/${{ secrets.GCP_USER }}
+            sudo mv * /var/www/html
